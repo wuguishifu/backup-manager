@@ -1,15 +1,16 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getBucketById, findMatchingRule } from "@/lib/config";
-import { listObjects, deleteObject } from "@/lib/s3";
-import { computeTtlStatus } from "@/lib/ttl";
-import type { EnrichedObject } from "@/lib/types";
+import { NextRequest, NextResponse } from 'next/server';
+import { getBucketById, findMatchingRule } from '@/lib/config';
+import { listObjects, deleteObject } from '@/lib/s3';
+import { computeTtlStatus } from '@/lib/ttl';
+import type { EnrichedObject } from '@/lib/types';
 
 type Ctx = { params: Promise<{ bucketId: string }> };
 
 export async function GET(_req: NextRequest, { params }: Ctx) {
   const { bucketId } = await params;
   const bucket = getBucketById(bucketId);
-  if (!bucket) return NextResponse.json({ error: "Bucket not found" }, { status: 404 });
+  if (!bucket)
+    return NextResponse.json({ error: 'Bucket not found' }, { status: 404 });
 
   try {
     const raw = await listObjects(bucket);
@@ -20,7 +21,7 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
       const { status, expiresAt } = computeTtlStatus(
         obj.lastModified,
         rule?.ttl,
-        rule?.retentionPolicy,
+        rule?.retentionPolicy
       );
       return {
         key: obj.key,
@@ -42,11 +43,12 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
 
 export async function DELETE(req: NextRequest, { params }: Ctx) {
   const { bucketId } = await params;
-  const key = req.nextUrl.searchParams.get("key");
-  if (!key) return NextResponse.json({ error: "Missing key" }, { status: 400 });
+  const key = req.nextUrl.searchParams.get('key');
+  if (!key) return NextResponse.json({ error: 'Missing key' }, { status: 400 });
 
   const bucket = getBucketById(bucketId);
-  if (!bucket) return NextResponse.json({ error: "Bucket not found" }, { status: 404 });
+  if (!bucket)
+    return NextResponse.json({ error: 'Bucket not found' }, { status: 404 });
 
   try {
     await deleteObject(bucket, key);

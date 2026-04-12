@@ -1,6 +1,6 @@
-import { getPublicBuckets } from "@/lib/config";
-import { BucketSection } from "@/components/bucket-section";
-import { Header } from "@/components/header";
+import { BucketSection } from '@/components/bucket-section';
+import { Header } from '@/components/header';
+import { getPublicBuckets } from '@/lib/config';
 
 export default function Page() {
   let buckets;
@@ -16,9 +16,10 @@ export default function Page() {
               No configuration found
             </p>
             <p className="mt-1 text-sm text-muted-foreground">
-              Add a <code className="font-mono">config.yaml</code> to the project
-              root (or set the <code className="font-mono">CONFIG_PATH</code>{" "}
-              environment variable). See{" "}
+              Add a <code className="font-mono">config.yaml</code> to the
+              project root (or set the{' '}
+              <code className="font-mono">CONFIG_PATH</code> environment
+              variable). See{' '}
               <code className="font-mono">config.example.yaml</code> for the
               expected format.
             </p>
