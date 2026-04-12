@@ -1,6 +1,6 @@
 import Fastify from 'fastify';
 import { KubeConfig, BatchV1Api } from '@kubernetes/client-node';
-import type { BackupJob } from '@backup-manager/types';
+import type { BackupJob, BackupRequest } from '@backup-manager/types';
 
 const NAMESPACE = process.env.CRONJOB_NAMESPACE ?? 'databases';
 const CRONJOB_NAME = process.env.CRONJOB_NAME ?? 'sensitive-db-backup-daily';
@@ -21,40 +21,69 @@ const app = Fastify({ logger: true });
  * POST /backup
  *
  * Triggers a backup by instantiating a one-off Job from the CronJob's
- * jobTemplate. Returns 202 with the job ID immediately — the job runs
- * asynchronously. Poll GET /backup/:jobId for completion.
+ * jobTemplate, with BACKUP_PREFIX overridden in every upload container.
+ * Returns 202 immediately — poll GET /backup/:jobId for completion.
  */
-app.post('/backup', async (_req, reply) => {
-  const cj = await batch.readNamespacedCronJob({
-    name: CRONJOB_NAME,
-    namespace: NAMESPACE,
-  });
-
-  const jobTemplate = cj.spec?.jobTemplate;
-  if (!jobTemplate) {
-    return reply.status(500).send({ error: 'CronJob has no jobTemplate' });
-  }
-
-  const jobId = `manual-backup-${Date.now()}`;
-  const startedAt = new Date().toISOString();
-
-  await batch.createNamespacedJob({
-    namespace: NAMESPACE,
-    body: {
-      apiVersion: 'batch/v1',
-      kind: 'Job',
-      metadata: {
-        name: jobId,
-        namespace: NAMESPACE,
-        labels: { 'triggered-by': 'backup-manager' },
+app.post<{ Body: BackupRequest }>(
+  '/backup',
+  {
+    schema: {
+      body: {
+        type: 'object',
+        required: ['prefix'],
+        properties: { prefix: { type: 'string', minLength: 1 } },
       },
-      spec: jobTemplate.spec,
     },
-  });
+  },
+  async (req, reply) => {
+    const { prefix } = req.body;
 
-  const body: BackupJob = { jobId, status: 'pending', startedAt };
-  return reply.status(202).send(body);
-});
+    const cj = await batch.readNamespacedCronJob({
+      name: CRONJOB_NAME,
+      namespace: NAMESPACE,
+    });
+
+    const jobTemplate = cj.spec?.jobTemplate;
+    if (!jobTemplate) {
+      return reply.status(500).send({ error: 'CronJob has no jobTemplate' });
+    }
+
+    // Deep-clone so we don't mutate the cached CronJob response.
+    const spec = JSON.parse(JSON.stringify(jobTemplate.spec));
+
+    // Override BACKUP_PREFIX in every container (upload-r2, upload-s3, etc.)
+    // so manual backups land in the correct prefix folder and are picked up
+    // by the bucket lifecycle/retention rules.
+    type EnvEntry = { name: string; value?: string };
+    for (const container of spec?.template?.spec?.containers ?? []) {
+      const containers = container.env as EnvEntry[] | undefined;
+      const entry = containers?.find((e) => e.name === 'BACKUP_PREFIX');
+      if (entry) {
+        entry.value = prefix;
+      }
+    }
+
+    const jobId = `manual-backup-${Date.now()}`;
+    const startedAt = new Date().toISOString();
+
+    await batch.createNamespacedJob({
+      namespace: NAMESPACE,
+      body: {
+        apiVersion: 'batch/v1',
+        kind: 'Job',
+        metadata: {
+          name: jobId,
+          namespace: NAMESPACE,
+          labels: { 'triggered-by': 'backup-manager' },
+        },
+        spec,
+      },
+    });
+
+    const body: BackupJob = { jobId, status: 'pending', startedAt };
+    return reply.status(202).send(body);
+  }
+);
 
 /**
  * GET /backup/:jobId

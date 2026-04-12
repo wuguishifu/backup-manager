@@ -55,6 +55,16 @@ export function getPublicBuckets(): BucketPublicInfo[] {
   );
 }
 
+export function getUniquePrefixes(): string[] {
+  const seen = new Set<string>();
+  for (const bucket of loadBuckets()) {
+    for (const rule of bucket.config?.lifecycleRules ?? []) {
+      if (rule.prefix) seen.add(rule.prefix);
+    }
+  }
+  return [...seen].sort();
+}
+
 export function findMatchingRule(
   key: string,
   rules?: LifecycleRule[]

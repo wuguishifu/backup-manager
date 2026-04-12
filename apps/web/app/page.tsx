@@ -1,11 +1,14 @@
+import { BackupTrigger } from '@/components/backup-trigger';
 import { BucketSection } from '@/components/bucket-section';
 import { Header } from '@/components/header';
-import { getPublicBuckets } from '@/lib/config';
+import { getPublicBuckets, getUniquePrefixes } from '@/lib/config';
 
 export default function Page() {
   let buckets;
+  let prefixes: string[] = [];
   try {
     buckets = getPublicBuckets();
+    prefixes = getUniquePrefixes();
   } catch {
     return (
       <div className="flex min-h-svh flex-col">
@@ -29,10 +32,13 @@ export default function Page() {
     );
   }
 
+  const adapterConfigured = !!process.env.BACKUP_ADAPTER_URL;
+
   return (
     <div className="flex min-h-svh flex-col">
       <Header />
       <main className="mx-auto w-full max-w-5xl flex-1 space-y-4 p-6">
+        {adapterConfigured && <BackupTrigger prefixes={prefixes} />}
         {buckets.map((bucket) => (
           <BucketSection key={bucket.id} bucket={bucket} />
         ))}

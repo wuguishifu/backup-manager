@@ -1,3 +1,8 @@
+/** Sent as the POST /backup request body. */
+export interface BackupRequest {
+  prefix: string;
+}
+
 /**
  * A backup job triggered via the adapter API.
  *
