@@ -7,5 +7,9 @@
     "typecheck": "pnpm -r --filter '!backup-manager-workspace' typecheck",
     "lint": "pnpm -r --filter '!backup-manager-workspace' lint",
     "format": "prettier --write \"**/*.{ts,tsx,mjs,json,yaml,md}\" --ignore-path apps/web/.prettierignore"
+  },
+  "devDependencies": {
+    "prettier": "^3.8.1",
+    "prettier-plugin-tailwindcss": "^0.7.2"
   }
 }
