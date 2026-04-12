@@ -1,0 +1,27 @@
+buckets:
+  - name: 'CloudFlare R2'
+    bucketName: 'homelab-backups'
+    s3ApiUrl: 'https://<account-id>.r2.cloudflarestorage.com'
+    accessKeyIdName: 'R2_ACCESS_KEY_ID'
+    secretAccessKeyName: 'R2_SECRET_ACCESS_KEY'
+    config:
+      lifecycleRules:
+        - prefix: 'hourly/'
+          retentionPolicy: 'delete'
+          ttl: '7d'
+        - prefix: 'daily/'
+          retentionPolicy: 'delete'
+          ttl: '90d'
+        - prefix: 'monthly/'
+          retentionPolicy: 'retain'
+
+  - name: 'Amazon S3'
+    bucketName: 'my-bucket-name'
+    region: 'us-east-2'
+    accessKeyIdName: 'S3_ACCESS_KEY_ID'
+    secretAccessKeyName: 'S3_SECRET_ACCESS_KEY'
+    config:
+      lifecycleRules:
+        - prefix: ''
+          retentionPolicy: 'delete'
+          ttl: '90d'
