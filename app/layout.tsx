@@ -3,6 +3,7 @@ import './globals.css';
 import { Geist_Mono, Noto_Sans, Nunito_Sans } from 'next/font/google';
 
 import { ThemeProvider } from '@/components/theme-provider';
+import { PageSizeProvider } from '@/components/page-size-provider';
 import { cn } from '@/lib/utils';
 
 const notoSansHeading = Noto_Sans({
@@ -35,7 +36,9 @@ export default function RootLayout({
       )}
     >
       <body>
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          <PageSizeProvider>{children}</PageSizeProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

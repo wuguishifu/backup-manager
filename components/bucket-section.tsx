@@ -23,12 +23,14 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { usePageSize } from '@/components/page-size-provider';
 import type { BucketPublicInfo, LifecycleRule } from '@/lib/config';
 import type { EnrichedObject, TtlStatus } from '@/lib/types';
 import { cn, formatAbsolute, formatBytes, formatRelative } from '@/lib/utils';
 import {
   AlertCircle,
   ChevronDown,
+  ChevronLeft,
   ChevronRight,
   Download,
   RefreshCw,
@@ -87,16 +89,12 @@ function ExpiryCell({
   if (!ttl || !expiresAt) {
     return <span className="text-muted-foreground">—</span>;
   }
-  const label =
-    status === 'expired'
-      ? `${formatRelative(expiresAt)}`
-      : formatRelative(expiresAt);
   return (
     <span
       title={formatAbsolute(expiresAt)}
       className={status === 'expired' ? 'text-destructive' : ''}
     >
-      {label}
+      {formatRelative(expiresAt)}
     </span>
   );
 }
@@ -246,7 +244,29 @@ function RuleGroup({
   bucketId: string;
   onDeleted: (key: string) => void;
 }) {
+  const { pageSize } = usePageSize();
   const [expanded, setExpanded] = React.useState(true);
+  const [currentPage, setCurrentPage] = React.useState(1);
+
+  const effectivePageSize = pageSize === 'all' ? objects.length : pageSize;
+  const totalPages =
+    effectivePageSize > 0 ? Math.ceil(objects.length / effectivePageSize) : 1;
+
+  // Reset to page 1 when page size changes
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [pageSize]);
+
+  // Clamp current page when objects are deleted
+  React.useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    }
+  }, [objects.length, totalPages, currentPage]);
+
+  const startIdx = (currentPage - 1) * effectivePageSize;
+  const endIdx = Math.min(startIdx + effectivePageSize, objects.length);
+  const visibleObjects = objects.slice(startIdx, endIdx);
 
   const totalSize = objects.reduce((s, o) => s + o.size, 0);
   const prefix = rule?.prefix ?? null;
@@ -258,6 +278,8 @@ function RuleGroup({
         ? `${rule.ttl} TTL`
         : 'no TTL configured'
     : 'no matching rule';
+
+  const showPagination = pageSize !== 'all' && totalPages > 1;
 
   return (
     <div>
@@ -294,7 +316,7 @@ function RuleGroup({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {objects.map((obj) => (
+              {visibleObjects.map((obj) => (
                 <ObjectRow
                   key={obj.key}
                   obj={obj}
@@ -305,6 +327,37 @@ function RuleGroup({
               ))}
             </TableBody>
           </Table>
+
+          {showPagination && (
+            <div className="flex items-center justify-between border-t border-border px-3 py-2">
+              <span className="text-xs text-muted-foreground tabular-nums">
+                {startIdx + 1}–{endIdx} of {objects.length}
+              </span>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage((p) => p - 1)}
+                  title="Previous page"
+                >
+                  <ChevronLeft />
+                </Button>
+                <span className="min-w-[5rem] text-center text-xs text-muted-foreground tabular-nums">
+                  page {currentPage} of {totalPages}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage((p) => p + 1)}
+                  title="Next page"
+                >
+                  <ChevronRight />
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
