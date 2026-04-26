@@ -3,6 +3,8 @@ import { BucketSection } from '@/components/bucket-section';
 import { Header } from '@/components/header';
 import { getPublicBuckets, getUniquePrefixes } from '@/lib/config';
 
+export const dynamic = 'force-dynamic';
+
 export default function Page() {
   let buckets;
   let prefixes: string[] = [];
