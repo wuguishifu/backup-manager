@@ -17,4 +17,4 @@ COPY --from=deps /app/apps/k8s-adapter/node_modules ./apps/k8s-adapter/node_modu
 COPY packages/ ./packages/
 COPY apps/k8s-adapter/ ./apps/k8s-adapter/
 EXPOSE 3001
-CMD ["node_modules/.bin/tsx", "apps/k8s-adapter/src/index.ts"]
+CMD ["apps/k8s-adapter/node_modules/.bin/tsx", "apps/k8s-adapter/src/index.ts"]
